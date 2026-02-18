@@ -12,8 +12,8 @@ const navigation = [
 ]
 
 const socialLinks = [
-    { name: "GitHub", href: "https://github.com/siddharthr", icon: Github },
-    { name: "LinkedIn", href: "https://linkedin.com/in/siddharthr", icon: Linkedin },
+    { name: "GitHub", href: "https://github.com/sidrk-dev", icon: Github },
+    { name: "LinkedIn", href: "https://www.linkedin.com/in/siddharthrajasekaran/", icon: Linkedin },
     { name: "Email", href: "mailto:siddharth@example.com", icon: Mail },
     { name: "Resume", href: "/portfolio/resume.pdf", icon: FileText },
 ]
