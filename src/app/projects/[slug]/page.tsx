@@ -1,13 +1,16 @@
-"use client"
-
 import { portfolio } from "@/data/portfolio"
 import { ArrowLeft, Github, Calendar, Layers, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { use } from "react"
 
-export default function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = use(params)
+export async function generateStaticParams() {
+    return portfolio.projects.map((project) => ({
+        slug: project.slug,
+    }))
+}
+
+export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params
     const project = portfolio.projects.find((p) => p.slug === slug)
 
     if (!project) {
