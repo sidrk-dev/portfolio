@@ -24,20 +24,38 @@ export const portfolio = {
     {
       title: "BLDC Robot Actuator",
       slug: "bldc-actuator",
-      tags: ["C++", "PCB Design", "FOC", "CAN Bus", "AS5600"],
+      tags: ["Moteus r4.11", "AS5047P", "CAN FD", "Python", "FOC", "Robotics"],
       description:
-        "Reverse-engineered hoverboard BLDC motors into high-torque robotic actuators. Implemented Field-Oriented Control (FOC) for silent torque control, integrated magnetic encoders for closed-loop feedback, and designed a custom motor controller PCB with CAN communication.",
-      longDescription: `
-        This project involved reverse-engineering readily available hoverboard BLDC motors to create high-performance, low-cost robotic actuators. 
-        
-        Key challenges included:
-        - designing a custom PCB to mount the AS5600 magnetic encoder.
-        - implementing FOC (Field Oriented Control) on an STM32/RP2040 microcontroller for smooth, silent torque control.
-        - debugging CAN bus communication for reliable multi-motor coordination.
+        "Commodity hoverboard motors repurposed as high-torque robotic actuators — delivering an exceptional torque-to-price ratio compared to any off-the-shelf solution. Characterized motor performance via a custom Python test stand over CAN FD.",
+      longDescription: `The Core Idea
 
-        The result is a actuator capable of ~15Nm peak torque with position control, suitable for legged robots and arm manipulators.
-      `,
-      link: "https://github.com/sidrk-dev/bldc-actuator", // Placeholder link
+Hoverboard motors are one of the best-kept secrets in robotics. For roughly $20–40, you get a large-diameter BLDC motor with an impressive torque output — a torque-to-price ratio that leaves conventional servo motors in the dust. The thesis of this project was simple: can we take these commodity motors and turn them into viable robotic actuators?
+
+The short answer: yes. Here's how.
+
+Choosing the Right Motor Controller
+
+The first challenge was finding a motor controller capable of running Field-Oriented Control (FOC) on a large, multi-pole hoverboard motor. After evaluating several options, I landed on the Moteus r4.11 — a compact, high-performance brushless motor controller that natively supports CAN FD communication and has excellent Python tooling for scripting and data collection.
+
+For position sensing and commutation, I chose the AS5047P absolute magnetic encoder. Unlike incremental encoders, it provides an absolute position reading on startup, which is critical for reliable homing and multi-turn tracking in a robotic joint.
+
+Building the Test Stand
+
+Before integrating the motor into any robot, I needed to characterize it. I built a test stand to answer two key questions:
+
+— How fast can I drive it before it overheats?
+— What is the peak torque it can deliver?
+
+Speed was measured directly through the AS5047P encoder, reading electrical and mechanical RPM at increasing voltage levels while monitoring motor temperature. Torque was measured by stalling the motor and reading back the phase currents reported by the Moteus controller — from there, calculating output torque using the motor's Kt constant.
+
+All communication was done over CAN FD to USB, connected to my laptop. A Python script automated the test sequences, logging both speed and torque data and generating plots of the motor's performance envelope.
+
+Results & Next Steps
+
+The characterization data gave us a clear operating map for the motor — peak torque figures, thermal limits, and the voltage headroom available before saturation. These numbers directly informed the design of the custom FOC Driver PCB (a separate project), which aims to bring this same performance into a compact, purpose-built board.
+
+The long-term goal is to integrate these actuators into a legged robot platform, where their low cost and high torque density make them uniquely compelling.`,
+      link: "https://github.com/sidrk-dev/bldc-actuator",
       image: "/portfolio/images/bldc-actuator.jpg",
     },
     {
