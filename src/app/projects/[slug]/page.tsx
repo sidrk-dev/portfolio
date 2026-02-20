@@ -2,6 +2,8 @@ import { portfolio } from "@/data/portfolio"
 import { ArrowLeft, Github, Calendar, Layers, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 export async function generateStaticParams() {
     return portfolio.projects.map((project) => ({
@@ -75,8 +77,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
 
                     <div className="grid md:grid-cols-[2fr_1fr] gap-12">
                         {/* Content */}
-                        <div className="prose prose-invert prose-lg max-w-none text-gray-300 font-light leading-relaxed whitespace-pre-line">
-                            {project.longDescription || project.description}
+                        <div className="prose prose-invert prose-cyan prose-lg max-w-none text-gray-300 font-light leading-relaxed">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {project.longDescription || project.description}
+                            </ReactMarkdown>
                         </div>
 
                         {/* Sidebar */}
