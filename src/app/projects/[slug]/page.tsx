@@ -2,13 +2,35 @@ import { portfolio } from "@/data/portfolio"
 import { ArrowLeft, Github, Calendar, Layers, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { promises as fs } from "fs"
+import path from "path"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import remarkDirective from "remark-directive"
+import { visit } from "unist-util-visit"
+import type { Root } from "mdast"
 
 export async function generateStaticParams() {
     return portfolio.projects.map((project) => ({
         slug: project.slug,
     }))
+}
+
+// Custom remark plugin: converts ::youtube[VIDEO_ID] into an <youtube> node
+function remarkYoutube() {
+    return (tree: Root) => {
+        visit(tree, (node: { type: string; name?: string; children?: Array<{ type: string; value?: string }> }) => {
+            if (
+                node.type === "leafDirective" &&
+                node.name === "youtube"
+            ) {
+                const videoId = node.children?.[0]?.value ?? ""
+                // Mutate in place so ReactMarkdown sees it as an html node
+                node.type = "html" as typeof node.type
+                    ; (node as unknown as { value: string }).value = `<div class="youtube-embed"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+            }
+        })
+    }
 }
 
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -17,6 +39,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
 
     if (!project) {
         notFound()
+    }
+
+    // Load markdown content from src/content/<slug>.md
+    let markdownContent = project.description
+    try {
+        const contentPath = path.join(process.cwd(), "src", "content", `${slug}.md`)
+        markdownContent = await fs.readFile(contentPath, "utf-8")
+    } catch {
+        // Falls back to the short description if no .md file exists
     }
 
     return (
@@ -77,9 +108,20 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
 
                     <div className="grid md:grid-cols-[2fr_1fr] gap-8 md:gap-12">
                         {/* Content */}
-                        <div className="prose prose-invert prose-cyan prose-sm sm:prose-lg max-w-none text-gray-300 font-light leading-relaxed overflow-x-auto [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {project.longDescription || project.description}
+                        <div className="prose prose-invert prose-cyan prose-sm sm:prose-lg max-w-none text-gray-300 font-light leading-relaxed [&_.youtube-embed]:relative [&_.youtube-embed]:w-full [&_.youtube-embed]:pb-[56.25%] [&_.youtube-embed]:h-0 [&_.youtube-embed]:my-8 [&_.youtube-embed_iframe]:absolute [&_.youtube-embed_iframe]:top-0 [&_.youtube-embed_iframe]:left-0 [&_.youtube-embed_iframe]:w-full [&_.youtube-embed_iframe]:h-full [&_.youtube-embed_iframe]:rounded-xl [&_.youtube-embed_iframe]:border [&_.youtube-embed_iframe]:border-white/10 [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube]}
+                                // Allow raw HTML nodes (needed for the youtube iframe)
+                                rehypePlugins={[]}
+                                components={{
+                                    // Render raw html nodes from our youtube plugin
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    html: ({ node }: any) => (
+                                        <span dangerouslySetInnerHTML={{ __html: node?.value ?? "" }} />
+                                    ),
+                                }}
+                            >
+                                {markdownContent}
                             </ReactMarkdown>
                         </div>
 
