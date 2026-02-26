@@ -26,22 +26,22 @@ export const portfolio = {
       slug: "bldc-actuator",
       tags: ["Moteus r4.11", "AS5047P", "CAN FD", "Python", "FOC", "Robotics"],
       description:
-        "Commodity hoverboard motors repurposed as high-torque robotic actuators — delivering an exceptional torque-to-price ratio compared to any off-the-shelf solution. Characterized motor performance via a custom Python test stand over CAN FD.",
+        "Commodity hoverboard motors repurposed as high-torque robotic actuators, delivering an exceptional torque-to-price ratio compared to any off-the-shelf solution. Characterized motor performance via a custom Python test stand over CAN FD.",
       longDescription: `## The Core Idea
 
-Hoverboard motors are one of the best-kept secrets in robotics. For roughly \$20–40, you get a large-diameter BLDC motor with an impressive torque output — a torque-to-price ratio that leaves conventional servo motors in the dust. The thesis of this project was simple: can we take these commodity motors and turn them into viable robotic actuators?
+Hoverboard motors are one of the best-kept secrets in robotics. For roughly \$20-40, you get a large-diameter BLDC motor with an impressive torque output, delivering a torque-to-price ratio that leaves conventional servo motors in the dust. The thesis of this project was simple: can we take these commodity motors and turn them into viable robotic actuators?
 
 The short answer: yes. Here's how.
 
 ## Choosing the Right Motor Controller
 
-The first challenge was finding a motor controller capable of running Field-Oriented Control (FOC) on a large, multi-pole hoverboard motor. After evaluating several options, I landed on the Moteus r4.11 — a compact, high-performance brushless motor controller that natively supports CAN FD communication and has excellent Python tooling for scripting and data collection.
+The first challenge was finding a motor controller capable of running Field-Oriented Control (FOC) on a large, multi-pole hoverboard motor. After evaluating several options, I landed on the Moteus r4.11: a compact, high-performance brushless motor controller that natively supports CAN FD communication and has excellent Python tooling for scripting and data collection.
 
 For position sensing and commutation, I chose the AS5047P absolute magnetic encoder. Unlike incremental encoders, it provides an absolute position reading on startup, which is critical for reliable homing and multi-turn tracking in a robotic joint.
 
 ---
 
-When building an actuator for real-world use, guessing at motor performance is not enough. You need data. I designed and built a complete characterization and control suite for a **400W hoverboard hub motor** driven by a [mjbots moteus r4.11](https://mjbots.com/products/moteus-r4-11) field-oriented controller. The suite covers locked-rotor torque testing, velocity sweep profiling, real-time multi-sensor telemetry, automated data logging, and an experimental haptic feedback mode. This post covers the full stack, from winding physics to async Python architecture.
+When building an actuator for real-world use, guessing at motor performance is not enough. You need data. I designed and built a complete characterization and control suite for a **400W hoverboard hub motor** driven by a [mjbots moteus r4.11](https://mjbots.com/products/moteus-r4-11) field-oriented controller. The suite covers locked-rotor torque testing, velocity sweep profiling, real-time multi-sensor telemetry, automated data logging, and an experimental haptic feedback mode. This post covers the full stack: from winding physics to async Python architecture.
 
 ---
 
@@ -131,7 +131,7 @@ The calibration process maps encoder position to electrical angle across all 30 
 
 ## Locked-Rotor Torque Test
 
-The core test is a **locked-rotor (stall) torque characterization**. The motor is mechanically clamped, and torque is commanded via a linear ramp from 0 to 15 Nm over 10 seconds, then held at maximum for 2 seconds. The key control configuration is **pure feedforward torque mode**:
+The core test is a **locked-rotor (stall) torque characterization**. The motor is mechanically clamped, and torque is commanded via a linear ramp from 0 to 15 Nm over 10 seconds, then held at maximum for 2 seconds. The key control configuration is pure feedforward torque mode:
 
 \`\`\`python
 await self.c.set_position(
@@ -165,7 +165,7 @@ If any condition triggers, \`set_stop()\` is called immediately and the partial 
 
 The moteus reports its own **controller board temperature**, but that tells you nothing about motor winding health. The windings are what actually fails first under sustained stall current. Winding temperature is a direct proxy for insulation life and magnet integrity.
 
-I added an Arduino with an NTC thermistor mounted to the motor casing and fused both temperature channels into the telemetry stream. The challenge was that the main control loop runs async at 50Hz, so blocking serial reads would stall the entire loop. The solution is a **background reader thread** using a producer-consumer pattern:
+I added an Arduino with an NTC thermistor mounted to the motor casing and fused both temperature channels into the telemetry stream. The challenge was that the main control loop runs async at 50Hz, so blocking serial reads would stall the entire loop. The solution is a background reader thread using a producer-consumer pattern:
 
 \`\`\`python
 class ArduinoTempReader:
@@ -218,7 +218,7 @@ friction_torque = -copysign(FRICTION, current_vel)  # coulomb friction
 total_torque    = spring_torque + damping_torque + friction_torque
 \`\`\`
 
-This demonstrates closing a real-time feedback loop at the torque level, which is the same technique used in **force-controlled exoskeletons, haptic surgical tools, and collaborative robot arms**.
+This demonstrates closing a real-time feedback loop at the torque level, which is the same technique used in force-controlled exoskeletons, haptic surgical tools, and collaborative robot arms.
 
 ---
 
@@ -255,21 +255,84 @@ The full codebase is on [GitHub](https://github.com).
     {
       title: "Custom FOC Driver PCB",
       slug: "foc-driver",
-      tags: ["KiCad", "Analog Design", "SMD Soldering", "SimpleFOC"],
+      tags: ["KiCad", "DRV8313", "SMD Soldering", "SimpleFOC", "Oscilloscope", "STM32", "Debugging"],
       description:
-        "Extended the SimpleFOC Mini design with inline current sensing on phases A and C using shunt resistors and op-amp signal conditioning, enabling true closed-loop torque control. Validated phase current waveforms via oscilloscope.",
+        "Custom BLDC motor driver PCB built around the DRV8313. Diagnosed a silent hardware fault using bare-metal firmware and oscilloscope measurements, tracing the root cause to a missing ground reference that left the enable pin at an anomalous 3.6V floating voltage.",
       longDescription: `
-        A custom Brushless DC (BLDC) motor driver designed for FOC applications. 
-        
-        Features:
-        - Integrated inline current sensing for Phase A and C.
-        - Compact form factor compatible with simpleFOC library.
-        - DRV8313 driver stage.
-        - Designed in KiCad and hand-assembled using hot air reflow.
-        
-        This board enables current-loop control, which is critical for compliance and force-feedback applications in robotics.
-      `,
-      link: "https://github.com/sidrk-dev/foc-driver", // Placeholder link
+## Overview
+
+This project documents the design, assembly, and bring-up debugging of a custom BLDC motor driver PCB built around the Texas Instruments DRV8313 three-phase gate driver. What started as a straightforward motor spin-up turned into a rigorous multi-domain diagnostic exercise spanning firmware, power electronics, and IC datasheet analysis.
+
+---
+
+## Initial Testing: Six-Step Commutation
+
+The first bring-up attempt used a six-step (trapezoidal block) commutation script running on an STM32 microcontroller to command the DRV8313. The motor produced zero response: no movement, no current draw.
+
+Before assuming a hardware issue, I needed to rule out the firmware layer entirely.
+
+---
+
+## 1. Firmware Layer Verification
+
+The STM32 has a significantly more complex hardware timer matrix compared to standard AVR microcontrollers. My initial hypothesis was a software-level timer mapping failure inside the motor control library.
+
+**Action:** Bypassed the library abstraction layer entirely. Wrote a bare-metal C++ script using \`analogWrite()\` to generate a raw 490Hz, 50% duty cycle square wave across pins 5, 6, and 9.
+
+**Result:** Oscilloscope verification confirmed three clean 5.0V square waves at the MCU output pins.
+
+**Conclusion:** The MCU and firmware were generating valid PWM logic. The failure resided in the power stage or driver interface.
+
+---
+
+## 2. Driver Board Diagnostics (Power Stage Domain)
+
+To rule out a flawed sine-wave (SPWM) commutation strategy, I implemented basic 6-step trapezoidal block commutation. The motor still drew zero current.
+
+**Action:** Probed the DRV8313 output phases (OUT1/2/3) and the fault pin (nFT).
+
+**Result:** nFT read logic HIGH, indicating the chip was not in an overcurrent or thermal shutdown state. However, the output phases showed flat 0V lines instead of the expected 12V amplified PWM.
+
+**Conclusion:** The driver was structurally intact but actively refusing to switch its internal FETs.
+
+---
+
+## 3. Logic Level and Interface Analysis (Hardware Domain)
+
+I moved the oscilloscope probe to the control inputs of the DRV8313 to verify signal integrity between the MCU and the driver.
+
+**Action:** Probed the EN (Enable) pin, which must be driven HIGH to wake the chip from its low-power state.
+
+**Result:** The oscilloscope recorded an anomalous **3.6V floating voltage** on the EN pad, rather than the expected 5.0V logic HIGH from the Arduino Uno R4.
+
+---
+
+## 4. Datasheet Root-Cause Analysis
+
+To understand the 3.6V anomaly, I consulted the Texas Instruments DRV8313 datasheet.
+
+**Electrical Characteristics:** The datasheet specifies an internal 3.3V LDO regulator that powers the chip's core logic. The 3.6V reading indicated that the 5V signal from the Arduino was not being interpreted cleanly and was likely being clamped by internal protection diodes (3.3V LDO + approximately 0.3V diode drop).
+
+**Truth Table Analysis:** According to the IC's logic table (Table 1), if the ENx pins do not register a clean logic HIGH, the output H-bridges default to a High-Impedance (Hi-Z) state, essentially acting as an open circuit. This explained the flat 0V output phases despite the fault pin reading healthy.
+
+---
+
+## Resolution
+
+The floating intermediate voltage identified a **missing common ground reference** between the 5V MCU logic domain and the driver's isolated logic rail. By establishing a unified 0V reference and correctly leveling the enable pin to match the driver's internal thresholds, the DRV8313 successfully exited the Hi-Z state. The PWM signals amplified correctly and the motor spun.
+
+---
+
+## Skills Demonstrated
+
+| Area | What Was Done |
+|---|---|
+| **System-Level Debugging** | Methodical isolation of faults across software abstraction layers, MCU hardware timers, and power electronics |
+| **Test and Measurement** | Proficient use of oscilloscopes for validating digital logic integrity and power stage outputs |
+| **Datasheet Navigation** | Cross-referencing anomalous hardware behaviors with manufacturer electrical specifications and truth tables to determine IC states |
+| **Firmware Engineering** | Writing bare-metal C++ hardware tests to bypass complex libraries during root-cause analysis |
+`,
+      link: "https://github.com/sidrk-dev/foc-driver",
       image: "/portfolio/images/foc-driver.jpg",
     },
     {

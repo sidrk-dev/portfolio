@@ -24,16 +24,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             {/* Grid Background */}
             <div className="fixed inset-0 -z-10 h-full w-full bg-black bg-[radial-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
-            <div className="max-w-4xl mx-auto px-6 py-24">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-24">
                 <Link
                     href="/#projects"
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition-colors mb-12 group"
+                    className="inline-flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition-colors mb-8 sm:mb-12 group"
                 >
                     <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                     Back to Projects
                 </Link>
 
-                <header className="mb-16 space-y-6">
+                <header className="mb-8 sm:mb-16 space-y-4 sm:space-y-6">
                     <div className="space-y-2">
                         <div className="flex flex-wrap gap-2 mb-4">
                             {project.tags.map((tag) => (
@@ -42,7 +42,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
                                 </span>
                             ))}
                         </div>
-                        <h1 className="text-4xl md:text-6xl font-light tracking-tight text-white">
+                        <h1 className="text-3xl sm:text-4xl md:text-6xl font-light tracking-tight text-white">
                             {project.title}
                         </h1>
                         {project.subtitle && (
@@ -51,7 +51,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
                     </div>
                 </header>
 
-                <div className="grid gap-12">
+                <div className="grid gap-8 sm:gap-12">
                     {/* Project Image */}
                     <div className="aspect-video w-full relative overflow-hidden rounded-xl border border-white/10 bg-white/5">
                         {project.image ? (
@@ -75,16 +75,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
                         </div>
                     </div>
 
-                    <div className="grid md:grid-cols-[2fr_1fr] gap-12">
+                    <div className="grid md:grid-cols-[2fr_1fr] gap-8 md:gap-12">
                         {/* Content */}
-                        <div className="prose prose-invert prose-cyan prose-lg max-w-none text-gray-300 font-light leading-relaxed">
+                        <div className="prose prose-invert prose-cyan prose-sm sm:prose-lg max-w-none text-gray-300 font-light leading-relaxed overflow-x-auto [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {project.longDescription || project.description}
                             </ReactMarkdown>
                         </div>
 
                         {/* Sidebar */}
-                        <div className="space-y-8">
+                        <div className="space-y-6 md:space-y-8">
                             {/* Actions */}
                             <div className="p-6 rounded-xl border border-white/10 bg-white/5 space-y-4">
                                 <h3 className="text-sm font-mono text-gray-400 uppercase tracking-widest">Actions</h3>
