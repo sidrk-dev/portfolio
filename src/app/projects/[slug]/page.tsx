@@ -1,5 +1,5 @@
 import { portfolio } from "@/data/portfolio"
-import { ArrowLeft, Github, Layers, ExternalLink } from "lucide-react"
+import { ArrowLeft, Github, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { promises as fs } from "fs"
@@ -9,7 +9,6 @@ import remarkGfm from "remark-gfm"
 import remarkDirective from "remark-directive"
 import { visit } from "unist-util-visit"
 import type { Root } from "mdast"
-import SchematicViewer from "@/components/SchematicViewer"
 
 export async function generateStaticParams() {
     return portfolio.projects.map((project) => ({
@@ -26,14 +25,12 @@ function remarkYoutube() {
                 node.name === "youtube"
             ) {
                 const videoId = node.children?.[0]?.value ?? ""
-                // Mutate in place so ReactMarkdown sees it as an html node
                 node.type = "html" as typeof node.type
                     ; (node as unknown as { value: string }).value = `<div class="youtube-embed"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
             }
         })
     }
 }
-
 
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
@@ -43,7 +40,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         notFound()
     }
 
-    // Load markdown content from src/content/<slug>.md
     let markdownContent = project.description
     try {
         const contentPath = path.join(process.cwd(), "src", "content", `${slug}.md`)
@@ -52,139 +48,105 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         // Falls back to the short description if no .md file exists
     }
 
+    // Strip ::kicanvas lines so they don't render as raw text
+    const cleanedContent = markdownContent.replace(/::kicanvas\[.*?\]\n?/g, '')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mdComponents = { html: ({ node }: any) => <span dangerouslySetInnerHTML={{ __html: (node as any)?.value ?? "" }} /> }
+    const mdPlugins = [remarkGfm, remarkDirective, remarkYoutube] as any[]
+
     return (
         <main className="min-h-screen bg-black text-white selection:bg-cyan-500/30">
             {/* Grid Background */}
             <div className="fixed inset-0 -z-10 h-full w-full bg-black bg-[radial-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-24">
+            <div className="max-w-5xl mx-auto px-4 sm:px-8 py-12 sm:py-20">
+                {/* Back link */}
                 <Link
                     href="/#projects"
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition-colors mb-8 sm:mb-12 group"
+                    className="inline-flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition-colors mb-10 group"
                 >
                     <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                     Back to Projects
                 </Link>
 
-                <header className="mb-8 sm:mb-16 space-y-4 sm:space-y-6">
-                    <div className="space-y-2">
-                        <div className="flex flex-wrap gap-2 mb-4">
-                            {project.tags.map((tag) => (
-                                <span key={tag} className="px-3 py-1 text-xs font-mono font-medium bg-white/5 border border-white/10 text-cyan-200/80 rounded-full">
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-                        <h1 className="text-3xl sm:text-4xl md:text-6xl font-light tracking-tight text-white">
-                            {project.title}
-                        </h1>
-                        {project.subtitle && (
-                            <p className="text-xl text-gray-400 font-light">{project.subtitle}</p>
-                        )}
-                    </div>
-                </header>
+                {/* Title */}
+                <h1 className="text-3xl sm:text-5xl font-light tracking-tight text-white mb-4">
+                    {project.title}
+                </h1>
+                {project.subtitle && (
+                    <p className="text-lg text-gray-400 font-light mb-6">{project.subtitle}</p>
+                )}
 
-                <div className="grid gap-8 sm:gap-12">
-                    {/* Project Image */}
-                    <div className="aspect-video w-full relative overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                        {project.image ? (
-                            <img
-                                src={project.image}
-                                alt={project.title}
-                                className="object-cover w-full h-full"
-                            />
-                        ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-gray-600 font-mono">
-                                NO VISUAL DATA
-                            </div>
-                        )}
+                {/* Metadata bar: tags + GitHub link in one horizontal row */}
+                <div className="flex flex-wrap items-center gap-2 mb-8 pb-6 border-b border-white/10">
+                    {project.tags.map((tag) => (
+                        <span key={tag} className="px-2.5 py-0.5 text-xs font-mono bg-white/5 border border-white/10 text-cyan-200/70 rounded-full">
+                            {tag}
+                        </span>
+                    ))}
+                    {project.link && project.link !== "#" && (
+                        <a
+                            href={project.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/20 text-xs font-medium text-white/70 hover:text-white hover:border-cyan-500/50 transition-colors"
+                        >
+                            <Github className="w-3.5 h-3.5" />
+                            View Source
+                            <ExternalLink className="w-3 h-3 opacity-50" />
+                        </a>
+                    )}
+                </div>
 
-                        {/* Tech Overlays */}
-                        <div className="absolute top-0 left-0 p-4">
-                            <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
-                        </div>
-                        <div className="absolute bottom-0 right-0 p-4 font-mono text-xs text-cyan-500/50">
+                {/* Hero image */}
+                {project.image && (
+                    <div className="relative w-full overflow-hidden rounded-xl border border-white/10 bg-white/5 mb-10" style={{ aspectRatio: '16/9' }}>
+                        <img src={project.image} alt={project.title} className="object-cover w-full h-full" />
+                        <div className="absolute bottom-0 right-0 p-3 font-mono text-xs text-cyan-500/40">
                             ID: {project.slug?.toUpperCase()}
                         </div>
                     </div>
+                )}
 
-                    <div className="grid md:grid-cols-[2fr_1fr] gap-8 md:gap-12">
-                        {/* Content — Notion-style prose */}
-                        <div className="
-                            prose prose-invert max-w-none
-                            prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-white
-                            prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-white/10
-                            prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-white/90
-                            prose-p:text-gray-300 prose-p:leading-[1.85] prose-p:my-4
-                            prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:underline
-                            prose-strong:text-white prose-strong:font-semibold
-                            prose-code:text-cyan-300 prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[0.82em] prose-code:before:content-none prose-code:after:content-none
-                            prose-pre:bg-[#0d1117] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:overflow-x-auto
-                            prose-blockquote:border-l-2 prose-blockquote:border-cyan-500/40 prose-blockquote:text-gray-400
-                            prose-ul:my-3 prose-li:my-1.5 prose-li:text-gray-300
-                            prose-table:text-sm prose-th:text-white/80 prose-th:font-medium prose-td:text-gray-300
-                            prose-hr:border-white/10 prose-hr:my-8
-                            [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto
-                            [&_.youtube-embed]:relative [&_.youtube-embed]:w-full [&_.youtube-embed]:pb-[56.25%] [&_.youtube-embed]:h-0 [&_.youtube-embed]:my-8
-                            [&_.youtube-embed_iframe]:absolute [&_.youtube-embed_iframe]:inset-0 [&_.youtube-embed_iframe]:w-full [&_.youtube-embed_iframe]:h-full [&_.youtube-embed_iframe]:rounded-xl [&_.youtube-embed_iframe]:border [&_.youtube-embed_iframe]:border-white/10
-                        ">
-                            {slug === 'foc-driver' && (
-                                <>
-                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube]} rehypePlugins={[]} components={{ html: ({ node }: any) => <span dangerouslySetInnerHTML={{ __html: (node as any)?.value ?? "" }} /> }}>
-                                        {markdownContent.split('::kicanvas')[0]}
-                                    </ReactMarkdown>
-                                    <SchematicViewer />
-                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube]} rehypePlugins={[]} components={{ html: ({ node }: any) => <span dangerouslySetInnerHTML={{ __html: (node as any)?.value ?? "" }} /> }}>
-                                        {markdownContent.split('::kicanvas')[1]?.replace(/^.*?\n/, '') ?? ''}
-                                    </ReactMarkdown>
-                                </>
-                            )}
-                            {slug !== 'foc-driver' && (
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube]} rehypePlugins={[]} components={{ html: ({ node }: any) => <span dangerouslySetInnerHTML={{ __html: (node as any)?.value ?? "" }} /> }}>
-                                    {markdownContent}
-                                </ReactMarkdown>
-                            )}
+                {/* Schematic image for foc-driver */}
+                {slug === 'foc-driver' && (
+                    <div className="mb-10 rounded-xl overflow-hidden border border-white/10">
+                        <div className="px-4 py-2 bg-white/3 border-b border-white/10 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-cyan-500/60" />
+                            <span className="text-xs font-mono text-cyan-400/70 tracking-widest uppercase">FOC_DV — Schematic</span>
                         </div>
-
-                        {/* Sidebar */}
-                        <div className="space-y-6 md:space-y-8">
-                            {/* Actions */}
-                            <div className="p-6 rounded-xl border border-white/10 bg-white/5 space-y-4">
-                                <h3 className="text-sm font-mono text-gray-400 uppercase tracking-widest">Actions</h3>
-                                {project.link && project.link !== "#" && (
-                                    <a
-                                        href={project.link}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-between w-full px-4 py-3 bg-white text-black rounded-lg font-medium hover:bg-cyan-50 transition-colors group"
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <Github className="w-4 h-4" />
-                                            View Source
-                                        </span>
-                                        <ExternalLink className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                                    </a>
-                                )}
-                            </div>
-
-                            {/* Tech Stack List */}
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Layers className="w-4 h-4" />
-                                    Technology
-                                </h3>
-                                <ul className="space-y-2">
-                                    {project.tags.map((tag) => (
-                                        <li key={tag} className="flex items-center gap-3 text-gray-300">
-                                            <div className="w-1.5 h-1.5 bg-cyan-500/50 rounded-full" />
-                                            {tag}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
+                        <img
+                            src="/portfolio/images/foc-schematic.png"
+                            alt="FOC_DV PCB Schematic"
+                            className="w-full h-auto block bg-[#f5f0e8]"
+                        />
                     </div>
+                )}
+
+                {/* Prose content — full width */}
+                <div className="
+                    prose prose-invert max-w-none
+                    prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-white
+                    prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-2 prose-h2:pb-2 prose-h2:border-b prose-h2:border-white/10
+                    prose-h3:text-base prose-h3:mt-5 prose-h3:mb-1.5 prose-h3:text-white/90
+                    prose-p:text-gray-300 prose-p:leading-[1.75] prose-p:my-3
+                    prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:underline
+                    prose-strong:text-white prose-strong:font-semibold
+                    prose-code:text-cyan-300 prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[0.82em] prose-code:before:content-none prose-code:after:content-none
+                    prose-pre:bg-[#0d1117] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:text-sm prose-pre:overflow-x-auto
+                    prose-blockquote:border-l-2 prose-blockquote:border-cyan-500/40 prose-blockquote:text-gray-400 prose-blockquote:my-4
+                    prose-ul:my-2 prose-li:my-1 prose-li:text-gray-300
+                    prose-ol:my-2
+                    prose-table:text-sm prose-th:text-white/80 prose-th:font-medium prose-td:text-gray-300
+                    prose-hr:border-white/10 prose-hr:my-6
+                    [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto
+                    [&_.youtube-embed]:relative [&_.youtube-embed]:w-full [&_.youtube-embed]:pb-[56.25%] [&_.youtube-embed]:h-0 [&_.youtube-embed]:my-8
+                    [&_.youtube-embed_iframe]:absolute [&_.youtube-embed_iframe]:inset-0 [&_.youtube-embed_iframe]:w-full [&_.youtube-embed_iframe]:h-full [&_.youtube-embed_iframe]:rounded-xl [&_.youtube-embed_iframe]:border [&_.youtube-embed_iframe]:border-white/10
+                ">
+                    <ReactMarkdown remarkPlugins={mdPlugins} rehypePlugins={[]} components={mdComponents}>
+                        {cleanedContent}
+                    </ReactMarkdown>
                 </div>
             </div>
         </main>
