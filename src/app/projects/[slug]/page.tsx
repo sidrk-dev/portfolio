@@ -1,5 +1,5 @@
 import { portfolio } from "@/data/portfolio"
-import { ArrowLeft, Github, Calendar, Layers, ExternalLink } from "lucide-react"
+import { ArrowLeft, Github, Layers, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { promises as fs } from "fs"
@@ -9,6 +9,7 @@ import remarkGfm from "remark-gfm"
 import remarkDirective from "remark-directive"
 import { visit } from "unist-util-visit"
 import type { Root } from "mdast"
+import SchematicViewer from "@/components/SchematicViewer"
 
 export async function generateStaticParams() {
     return portfolio.projects.map((project) => ({
@@ -33,22 +34,6 @@ function remarkYoutube() {
     }
 }
 
-// Custom remark plugin: converts ::kicanvas[GITHUB_URL] into a KiCanvas iframe
-// Usage in markdown: ::kicanvas[https://github.com/user/repo/blob/main/path/to/file.kicad_sch]
-function remarkKiCanvas() {
-    return (tree: Root) => {
-        visit(tree, (node: { type: string; name?: string; children?: Array<{ type: string; value?: string }> }) => {
-            if (
-                node.type === "leafDirective" &&
-                node.name === "kicanvas"
-            ) {
-                const src = node.children?.[0]?.value ?? ""
-                node.type = "html" as typeof node.type
-                    ; (node as unknown as { value: string }).value = `<div class="kicanvas-embed" style="position:relative;width:100%;padding-bottom:66.25%;height:0;margin:2rem 0;"><iframe src="https://kicanvas.org/?github=${encodeURIComponent(src)}" title="KiCad Schematic" style="position:absolute;top:0;left:0;width:100%;height:100%;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:#1a1a1a;" allowfullscreen></iframe></div>`
-            }
-        })
-    }
-}
 
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
@@ -124,22 +109,42 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
                     </div>
 
                     <div className="grid md:grid-cols-[2fr_1fr] gap-8 md:gap-12">
-                        {/* Content */}
-                        <div className="prose prose-invert prose-cyan prose-sm sm:prose-lg max-w-none text-gray-300 font-light leading-relaxed [&_.youtube-embed]:relative [&_.youtube-embed]:w-full [&_.youtube-embed]:pb-[56.25%] [&_.youtube-embed]:h-0 [&_.youtube-embed]:my-8 [&_.youtube-embed_iframe]:absolute [&_.youtube-embed_iframe]:top-0 [&_.youtube-embed_iframe]:left-0 [&_.youtube-embed_iframe]:w-full [&_.youtube-embed_iframe]:h-full [&_.youtube-embed_iframe]:rounded-xl [&_.youtube-embed_iframe]:border [&_.youtube-embed_iframe]:border-white/10 [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube, remarkKiCanvas]}
-                                // Allow raw HTML nodes (needed for the youtube iframe)
-                                rehypePlugins={[]}
-                                components={{
-                                    // Render raw html nodes from our youtube plugin
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    html: ({ node }: any) => (
-                                        <span dangerouslySetInnerHTML={{ __html: node?.value ?? "" }} />
-                                    ),
-                                }}
-                            >
-                                {markdownContent}
-                            </ReactMarkdown>
+                        {/* Content — Notion-style prose */}
+                        <div className="
+                            prose prose-invert max-w-none
+                            prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-white
+                            prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-white/10
+                            prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-white/90
+                            prose-p:text-gray-300 prose-p:leading-[1.85] prose-p:my-4
+                            prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:underline
+                            prose-strong:text-white prose-strong:font-semibold
+                            prose-code:text-cyan-300 prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[0.82em] prose-code:before:content-none prose-code:after:content-none
+                            prose-pre:bg-[#0d1117] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:overflow-x-auto
+                            prose-blockquote:border-l-2 prose-blockquote:border-cyan-500/40 prose-blockquote:text-gray-400
+                            prose-ul:my-3 prose-li:my-1.5 prose-li:text-gray-300
+                            prose-table:text-sm prose-th:text-white/80 prose-th:font-medium prose-td:text-gray-300
+                            prose-hr:border-white/10 prose-hr:my-8
+                            [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto
+                            [&_.youtube-embed]:relative [&_.youtube-embed]:w-full [&_.youtube-embed]:pb-[56.25%] [&_.youtube-embed]:h-0 [&_.youtube-embed]:my-8
+                            [&_.youtube-embed_iframe]:absolute [&_.youtube-embed_iframe]:inset-0 [&_.youtube-embed_iframe]:w-full [&_.youtube-embed_iframe]:h-full [&_.youtube-embed_iframe]:rounded-xl [&_.youtube-embed_iframe]:border [&_.youtube-embed_iframe]:border-white/10
+                        ">
+                            {slug === 'foc-driver' && (
+                                <>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube]} rehypePlugins={[]} components={{ html: ({ node }: any) => <span dangerouslySetInnerHTML={{ __html: (node as any)?.value ?? "" }} /> }}>
+                                        {markdownContent.split('::kicanvas')[0]}
+                                    </ReactMarkdown>
+                                    <SchematicViewer />
+                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube]} rehypePlugins={[]} components={{ html: ({ node }: any) => <span dangerouslySetInnerHTML={{ __html: (node as any)?.value ?? "" }} /> }}>
+                                        {markdownContent.split('::kicanvas')[1]?.replace(/^.*?\n/, '') ?? ''}
+                                    </ReactMarkdown>
+                                </>
+                            )}
+                            {slug !== 'foc-driver' && (
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube]} rehypePlugins={[]} components={{ html: ({ node }: any) => <span dangerouslySetInnerHTML={{ __html: (node as any)?.value ?? "" }} /> }}>
+                                    {markdownContent}
+                                </ReactMarkdown>
+                            )}
                         </div>
 
                         {/* Sidebar */}
