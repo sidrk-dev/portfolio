@@ -33,9 +33,9 @@ export const portfolio = {
     {
       title: "Custom FOC Driver PCB",
       slug: "foc-driver",
-      tags: ["KiCad", "DRV8313", "SMD Soldering", "SimpleFOC", "Oscilloscope", "STM32", "Debugging"],
+      tags: ["KiCad", "DRV8313", "INA240", "Current Sensing", "SMD Soldering", "STM32", "Debugging"],
       description:
-        "Custom BLDC motor driver PCB built around the DRV8313. Diagnosed a silent hardware fault using bare-metal firmware and oscilloscope measurements, tracing the root cause to a missing ground reference that left the enable pin at an anomalous 3.6V floating voltage.",
+        "Custom BLDC motor driver PCB built around the DRV8313 with inline current sensing on two phases using TI INA240A2D amplifiers. Diagnosed a silent hardware bring-up failure using bare-metal firmware and oscilloscope measurements, tracing the root cause to a missing ground reference that left the enable pin floating at 3.6V.",
       link: "https://github.com/sidrk-dev/foc-driver",
       image: "/portfolio/images/foc-driver.jpg",
     },

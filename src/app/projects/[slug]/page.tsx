@@ -33,6 +33,23 @@ function remarkYoutube() {
     }
 }
 
+// Custom remark plugin: converts ::kicanvas[GITHUB_URL] into a KiCanvas iframe
+// Usage in markdown: ::kicanvas[https://github.com/user/repo/blob/main/path/to/file.kicad_sch]
+function remarkKiCanvas() {
+    return (tree: Root) => {
+        visit(tree, (node: { type: string; name?: string; children?: Array<{ type: string; value?: string }> }) => {
+            if (
+                node.type === "leafDirective" &&
+                node.name === "kicanvas"
+            ) {
+                const src = node.children?.[0]?.value ?? ""
+                node.type = "html" as typeof node.type
+                    ; (node as unknown as { value: string }).value = `<div class="kicanvas-embed" style="position:relative;width:100%;padding-bottom:66.25%;height:0;margin:2rem 0;"><iframe src="https://kicanvas.org/?github=${encodeURIComponent(src)}" title="KiCad Schematic" style="position:absolute;top:0;left:0;width:100%;height:100%;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:#1a1a1a;" allowfullscreen></iframe></div>`
+            }
+        })
+    }
+}
+
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
     const project = portfolio.projects.find((p) => p.slug === slug)
@@ -110,7 +127,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
                         {/* Content */}
                         <div className="prose prose-invert prose-cyan prose-sm sm:prose-lg max-w-none text-gray-300 font-light leading-relaxed [&_.youtube-embed]:relative [&_.youtube-embed]:w-full [&_.youtube-embed]:pb-[56.25%] [&_.youtube-embed]:h-0 [&_.youtube-embed]:my-8 [&_.youtube-embed_iframe]:absolute [&_.youtube-embed_iframe]:top-0 [&_.youtube-embed_iframe]:left-0 [&_.youtube-embed_iframe]:w-full [&_.youtube-embed_iframe]:h-full [&_.youtube-embed_iframe]:rounded-xl [&_.youtube-embed_iframe]:border [&_.youtube-embed_iframe]:border-white/10 [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto">
                             <ReactMarkdown
-                                remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube]}
+                                remarkPlugins={[remarkGfm, remarkDirective, remarkYoutube, remarkKiCanvas]}
                                 // Allow raw HTML nodes (needed for the youtube iframe)
                                 rehypePlugins={[]}
                                 components={{
