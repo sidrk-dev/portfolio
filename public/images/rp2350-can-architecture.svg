@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#26282b" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" fill="#131416"/>
+  <rect width="1200" height="800" fill="url(#grid)"/>
+
+  <text x="64" y="68" fill="#8e959e" font-family="JetBrains Mono, monospace" font-size="16" letter-spacing="1.5">SYSTEM BLOCK DIAGRAM · DISTRIBUTED 3-MCU 6-DOF CAN STACK</text>
+  <text x="64" y="102" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="26" font-weight="600">RP2350 1 kHz CAN + Multiplexed AS5600 Pose Recovery</text>
+
+  <!-- Host Workstation -->
+  <rect x="64" y="160" width="260" height="480" rx="4" fill="#1b1d20" stroke="#3c4046" stroke-width="1.5"/>
+  <text x="88" y="198" fill="#2dd4bf" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">HOST OPERATOR CONSOLE</text>
+  <text x="88" y="224" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="13">Python · PyQt · ROS 2 MoveIt</text>
+  <line x1="88" y1="242" x2="300" y2="242" stroke="#2d3136"/>
+
+  <rect x="88" y="264" width="212" height="84" rx="3" fill="#131416" stroke="#2dd4bf" stroke-opacity="0.5"/>
+  <text x="104" y="292" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">ik_dashboard_qt.py</text>
+  <text x="104" y="314" fill="#9ca3af" font-family="Inter, sans-serif" font-size="12">Live 3D URDF + 6-DOF IK</text>
+  <text x="104" y="332" fill="#9ca3af" font-family="Inter, sans-serif" font-size="12">Blocks until 3/3 MCUs synced</text>
+
+  <rect x="88" y="368" width="212" height="84" rx="3" fill="#131416" stroke="#3c4046"/>
+  <text x="104" y="396" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">pid_tuner.py</text>
+  <text x="104" y="418" fill="#9ca3af" font-family="Inter, sans-serif" font-size="12">Cascaded Angle → Speed PID</text>
+  <text x="104" y="436" fill="#9ca3af" font-family="Inter, sans-serif" font-size="12">Runtime ENCMAP / ABSPID</text>
+
+  <rect x="88" y="472" width="212" height="84" rx="3" fill="#131416" stroke="#3c4046"/>
+  <text x="104" y="500" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">ros2_control Bridge</text>
+  <text x="104" y="522" fill="#9ca3af" font-family="Inter, sans-serif" font-size="12">MoveIt 2 /arm_targets</text>
+  <text x="104" y="540" fill="#9ca3af" font-family="Inter, sans-serif" font-size="12">Binary CRC USB-CDC packets</text>
+
+  <text x="88" y="608" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">SAFETY: Freshness + Ack Gate</text>
+
+  <!-- USB Serial Lines -->
+  <path d="M 324 250 L 420 250" stroke="#60a5fa" stroke-width="2" stroke-dasharray="5,4"/>
+  <path d="M 324 400 L 420 400" stroke="#60a5fa" stroke-width="2" stroke-dasharray="5,4"/>
+  <path d="M 324 550 L 420 550" stroke="#60a5fa" stroke-width="2" stroke-dasharray="5,4"/>
+  <text x="336" y="240" fill="#60a5fa" font-family="JetBrains Mono, monospace" font-size="11">USB-CDC</text>
+
+  <!-- Node 1: Base -->
+  <rect x="420" y="160" width="330" height="140" rx="4" fill="#1b1d20" stroke="#2dd4bf" stroke-width="1.5"/>
+  <text x="442" y="192" fill="#2dd4bf" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">MCU 1 · BASE NODE (XIAO RP2350)</text>
+  <text x="442" y="216" fill="#d1d5db" font-family="JetBrains Mono, monospace" font-size="12">1 kHz LoopISR · MCP2515 SPI-CAN (1 Mbps)</text>
+  <text x="442" y="240" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">Wire1: PCA9548A I2C Mux → AS5600 Abs Enc</text>
+  <text x="442" y="264" fill="#fbbf24" font-family="JetBrains Mono, monospace" font-size="12">EEPROM abs_zero_offset (Power-loss recovery)</text>
+
+  <!-- Node 2: Joint 4 -->
+  <rect x="420" y="330" width="330" height="140" rx="4" fill="#1b1d20" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="442" y="362" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">MCU 2 · ELBOW / J4 NODE (RP2350)</text>
+  <text x="442" y="386" fill="#d1d5db" font-family="JetBrains Mono, monospace" font-size="12">1 kHz Cascaded Angle/Velocity PID</text>
+  <text x="442" y="410" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">Stale-I2C Watchdog → Instant 0 A CAN Cut</text>
+  <text x="442" y="434" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">Up to 8× C620/C610 ESC frames @ 1 Mbps</text>
+
+  <!-- Node 3: Wrist -->
+  <rect x="420" y="500" width="330" height="140" rx="4" fill="#1b1d20" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="442" y="532" fill="#a78bfa" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">MCU 3 · DIFFERENTIAL WRIST NODE</text>
+  <text x="442" y="556" fill="#d1d5db" font-family="JetBrains Mono, monospace" font-size="12">Coupled 2-DOF Bevel Gear Kinematics:</text>
+  <text x="442" y="580" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="12">ωA = +pitch + roll   |   ωB = +pitch − roll</text>
+  <text x="442" y="604" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">0.4° Deadband + Dual Axis/Motor Clamps</text>
+
+  <!-- CAN Bus Arrows -->
+  <path d="M 750 230 L 840 230" stroke="#f59e0b" stroke-width="2.5"/>
+  <path d="M 750 400 L 840 400" stroke="#f59e0b" stroke-width="2.5"/>
+  <path d="M 750 570 L 840 570" stroke="#f59e0b" stroke-width="2.5"/>
+  <text x="758" y="218" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="11">CAN 1M</text>
+  <text x="758" y="388" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="11">CAN 1M</text>
+  <text x="758" y="558" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="11">CAN 1M</text>
+
+  <!-- Actuators Right -->
+  <rect x="840" y="160" width="296" height="140" rx="4" fill="#181a1d" stroke="#525860"/>
+  <text x="862" y="194" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">J1 · J2 · J3 ACTUATORS</text>
+  <text x="862" y="220" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="13">3× DJI M3508 + C620 ESC</text>
+  <text x="862" y="244" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">94.23 : 1 Compound Reduction</text>
+  <text x="862" y="268" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">24 V DC Bus + Joint AS5600</text>
+
+  <rect x="840" y="330" width="296" height="140" rx="4" fill="#181a1d" stroke="#525860"/>
+  <text x="862" y="364" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">J4 FOREARM ACTUATOR</text>
+  <text x="862" y="390" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="13">1× DJI M3508 + C620 ESC</text>
+  <text x="862" y="414" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">44.00 : 1 Reduction</text>
+  <text x="862" y="438" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">Joint-Side Absolute Homing</text>
+
+  <rect x="840" y="500" width="296" height="140" rx="4" fill="#181a1d" stroke="#525860"/>
+  <text x="862" y="534" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">J5 · J6 BEVEL WRIST + GRIP</text>
+  <text x="862" y="560" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="13">2× M2006 + C610 ESC</text>
+  <text x="862" y="584" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">+ MD10C End-Effector Drive</text>
+  <text x="862" y="608" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="12">Zero-Crash Reboot Pose Sync</text>
+
+  <text x="64" y="736" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="13">VERIFIED: 1 kHz deterministic loop · 3-board online gate · Flash EEPROM calibration persistence</text>
+</svg>

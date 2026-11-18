@@ -1,154 +1,506 @@
-import { portfolio } from "@/data/portfolio"
-import { ArrowLeft, Github, ExternalLink } from "lucide-react"
-import Link from "next/link"
-import { notFound } from "next/navigation"
-import { promises as fs } from "fs"
-import path from "path"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import remarkDirective from "remark-directive"
-import { visit } from "unist-util-visit"
-import type { Root } from "mdast"
+import type { Metadata } from "next";
+import { isValidElement, type ReactNode } from "react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { promises as fs } from "fs";
+import path from "path";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import { portfolio } from "@/data/portfolio";
+import { devlogEntries } from "@/data/devlog";
+import { assetPath } from "@/lib/paths";
+import { SideNav, type NavSectionItem } from "@/components/SideNav";
+import { Im6014ThermalExplorer } from "@/components/Im6014ThermalExplorer";
+import { RegenBoardInspector } from "@/components/RegenBoardInspector";
+import SchematicViewer from "@/components/SchematicViewer";
+
+function slugifyHeading(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function extractNodeText(node: ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") {
+    return "";
+  }
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(extractNodeText).join("");
+  }
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    return extractNodeText(node.props.children);
+  }
+  return "";
+}
+
+function extractH2Headings(markdown: string): { id: string; label: string }[] {
+  const lines = markdown.split("\n");
+  const out: { id: string; label: string }[] = [];
+  for (const line of lines) {
+    const m = /^##\s+(.+)$/.exec(line.trim());
+    if (m) {
+      const raw = m[1].replace(/[`*_]/g, "").trim();
+      out.push({ id: slugifyHeading(raw), label: raw });
+    }
+  }
+  return out;
+}
 
 export async function generateStaticParams() {
-    return portfolio.projects.map((project) => ({
-        slug: project.slug,
-    }))
+  return portfolio.projects.map((project) => ({
+    slug: project.slug,
+  }));
 }
 
-// Custom remark plugin: converts ::youtube[VIDEO_ID] into an <youtube> node
-function remarkYoutube() {
-    return (tree: Root) => {
-        visit(tree, (node: { type: string; name?: string; children?: Array<{ type: string; value?: string }> }) => {
-            if (
-                node.type === "leafDirective" &&
-                node.name === "youtube"
-            ) {
-                const videoId = node.children?.[0]?.value ?? ""
-                node.type = "html" as typeof node.type
-                    ; (node as unknown as { value: string }).value = `<div class="youtube-embed"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
-            }
-        })
-    }
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const project = portfolio.projects.find((p) => p.slug === slug);
+  if (!project) {
+    return { title: "Project — Siddharth Rajasekaran" };
+  }
+  const pageTitle = `${project.shortTitle} — Siddharth Rajasekaran`;
+  const canonicalUrl = `https://sidrk-dev.github.io/portfolio/projects/${project.slug}/`;
+  const ogImageUrl = `https://sidrk-dev.github.io/portfolio${project.image}`;
+  return {
+    title: pageTitle,
+    description: project.summary,
+    openGraph: {
+      title: pageTitle,
+      description: project.summary,
+      type: "article",
+      url: canonicalUrl,
+      images: [
+        {
+          url: ogImageUrl,
+          width: project.imageWidth,
+          height: project.imageHeight,
+          alt: project.imageAlt,
+        },
+      ],
+    },
+  };
 }
 
-export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params
-    const project = portfolio.projects.find((p) => p.slug === slug)
+export default async function ProjectPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const idx = portfolio.projects.findIndex((p) => p.slug === slug);
+  if (idx === -1) {
+    notFound();
+  }
 
-    if (!project) {
-        notFound()
-    }
+  const project = portfolio.projects[idx];
+  const prevProject =
+    portfolio.projects[(idx - 1 + portfolio.projects.length) % portfolio.projects.length];
+  const nextProject =
+    portfolio.projects[(idx + 1) % portfolio.projects.length];
 
-    let markdownContent = project.description
-    try {
-        const contentPath = path.join(process.cwd(), "src", "content", `${slug}.md`)
-        markdownContent = await fs.readFile(contentPath, "utf-8")
-    } catch {
-        // Falls back to the short description if no .md file exists
-    }
+  let markdownContent = project.summary;
+  try {
+    const contentPath = path.join(process.cwd(), "src", "content", `${slug}.md`);
+    markdownContent = await fs.readFile(contentPath, "utf-8");
+  } catch {
+    // Fallback to summary
+  }
 
-    // Strip ::kicanvas lines so they don't render as raw text
-    const cleanedContent = markdownContent.replace(/::kicanvas\[.*?\]\n?/g, '')
+  const cleanedContent = markdownContent.replace(/::kicanvas\[.*?\]\n?/g, "");
+  const h2Headings = extractH2Headings(cleanedContent);
+  const projectLogs = devlogEntries.filter((e) => e.projectSlug === slug);
+  const relatedProjects = project.relatedSlugs
+    .map((rSlug) => portfolio.projects.find((p) => p.slug === rSlug))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p))
+    .map((p) => ({ slug: p.slug, title: p.shortTitle, summary: p.tileSub }));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mdComponents = { html: ({ node }: any) => <span dangerouslySetInnerHTML={{ __html: (node as any)?.value ?? "" }} /> }
-    const mdPlugins = [remarkGfm, remarkDirective, remarkYoutube] as any[]
+  const navSections: NavSectionItem[] = [{ id: "overview", label: "Overview" }];
+  if (project.specs && project.specs.length > 0) {
+    navSections.push({ id: "specifications", label: "Specifications" });
+  }
+  if (project.interactiveWidget) {
+    navSections.push({ id: "workbench", label: "Interactive workbench" });
+  }
+  if (project.plates && project.plates.length > 0) {
+    navSections.push({ id: "project-images", label: "Hardware & plots" });
+  }
+  for (const h of h2Headings) {
+    navSections.push(h);
+  }
+  if (projectLogs.length > 0) {
+    navSections.push({
+      id: "build-log",
+      label: `Progress log (${projectLogs.length})`,
+    });
+  }
+  if (relatedProjects.length > 0) {
+    navSections.push({ id: "related-work", label: "Related hardware" });
+  }
 
-    return (
-        <main className="min-h-screen bg-black text-white selection:bg-cyan-500/30">
-            {/* Grid Background */}
-            <div className="fixed inset-0 -z-10 h-full w-full bg-black bg-[radial-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+  return (
+    <div className="shell">
+      <SideNav
+        mode="project"
+        sections={navSections}
+        relatedProjects={relatedProjects}
+        crumb={<Link href="/#projects">← Siddharth Rajasekaran / projects</Link>}
+      />
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-8 py-12 sm:py-20">
-                {/* Back link */}
-                <Link
-                    href="/#projects"
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition-colors mb-10 group"
-                >
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    Back to Projects
-                </Link>
+      <main id="content" tabIndex={-1} className="project-article">
+        <header id="overview" tabIndex={-1}>
+          <h1>{project.title}</h1>
+          <p className="project-meta">
+            {project.categoryLabel} · {project.period} ·{" "}
+            <span style={{ color: "var(--accent)" }}>{project.status}</span>
+          </p>
+          <p className="lede" style={{ marginTop: "0.95rem" }}>
+            {project.summary}
+          </p>
 
-                {/* Title */}
-                <h1 className="text-3xl sm:text-5xl font-light tracking-tight text-white mb-4">
-                    {project.title}
-                </h1>
-                {project.subtitle && (
-                    <p className="text-lg text-gray-400 font-light mb-6">{project.subtitle}</p>
-                )}
-
-                {/* Metadata bar: tags + GitHub link in one horizontal row */}
-                <div className="flex flex-wrap items-center gap-2 mb-8 pb-6 border-b border-white/10">
-                    {project.tags.map((tag) => (
-                        <span key={tag} className="px-2.5 py-0.5 text-xs font-mono bg-white/5 border border-white/10 text-cyan-200/70 rounded-full">
-                            {tag}
-                        </span>
-                    ))}
-                    {project.link && project.link !== "#" && (
-                        <a
-                            href={project.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/20 text-xs font-medium text-white/70 hover:text-white hover:border-cyan-500/50 transition-colors"
-                        >
-                            <Github className="w-3.5 h-3.5" />
-                            View Source
-                            <ExternalLink className="w-3 h-3 opacity-50" />
-                        </a>
-                    )}
-                </div>
-
-                {/* Hero image */}
-                {project.image && (
-                    <div className="relative w-full overflow-hidden rounded-xl border border-white/10 bg-white/5 mb-10" style={{ aspectRatio: '16/9' }}>
-                        <img src={project.image} alt={project.title} className="object-cover w-full h-full" />
-                        <div className="absolute bottom-0 right-0 p-3 font-mono text-xs text-cyan-500/40">
-                            ID: {project.slug?.toUpperCase()}
-                        </div>
-                    </div>
-                )}
-
-                {/* Schematic image for foc-driver */}
-                {slug === 'foc-driver' && (
-                    <div className="mb-10 rounded-xl overflow-hidden border border-white/10">
-                        <div className="px-4 py-2 bg-white/3 border-b border-white/10 flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-cyan-500/60" />
-                            <span className="text-xs font-mono text-cyan-400/70 tracking-widest uppercase">FOC_DV — Schematic</span>
-                        </div>
-                        <img
-                            src="/portfolio/images/foc-schematic.png"
-                            alt="FOC_DV PCB Schematic"
-                            className="w-full h-auto block bg-[#f5f0e8]"
-                        />
-                    </div>
-                )}
-
-                {/* Prose content — full width */}
-                <div className="
-                    prose prose-invert max-w-none
-                    prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-white
-                    prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-2 prose-h2:pb-2 prose-h2:border-b prose-h2:border-white/10
-                    prose-h3:text-base prose-h3:mt-5 prose-h3:mb-1.5 prose-h3:text-white/90
-                    prose-p:text-gray-300 prose-p:leading-[1.75] prose-p:my-3
-                    prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:underline
-                    prose-strong:text-white prose-strong:font-semibold
-                    prose-code:text-cyan-300 prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[0.82em] prose-code:before:content-none prose-code:after:content-none
-                    prose-pre:bg-[#0d1117] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:text-sm prose-pre:overflow-x-auto
-                    prose-blockquote:border-l-2 prose-blockquote:border-cyan-500/40 prose-blockquote:text-gray-400 prose-blockquote:my-4
-                    prose-ul:my-2 prose-li:my-1 prose-li:text-gray-300
-                    prose-ol:my-2
-                    prose-table:text-sm prose-th:text-white/80 prose-th:font-medium prose-td:text-gray-300
-                    prose-hr:border-white/10 prose-hr:my-6
-                    [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto
-                    [&_.youtube-embed]:relative [&_.youtube-embed]:w-full [&_.youtube-embed]:pb-[56.25%] [&_.youtube-embed]:h-0 [&_.youtube-embed]:my-8
-                    [&_.youtube-embed_iframe]:absolute [&_.youtube-embed_iframe]:inset-0 [&_.youtube-embed_iframe]:w-full [&_.youtube-embed_iframe]:h-full [&_.youtube-embed_iframe]:rounded-xl [&_.youtube-embed_iframe]:border [&_.youtube-embed_iframe]:border-white/10
-                ">
-                    <ReactMarkdown remarkPlugins={mdPlugins} rehypePlugins={[]} components={mdComponents}>
-                        {cleanedContent}
-                    </ReactMarkdown>
-                </div>
+          {project.links.length > 0 && (
+            <div className="project-links-row">
+              {project.links.map((l) => {
+                const resolvedHref = l.href.startsWith("/")
+                  ? assetPath(l.href)
+                  : l.href;
+                return (
+                  <a
+                    key={l.label}
+                    href={resolvedHref}
+                    target={l.external ? "_blank" : undefined}
+                    rel={l.external ? "noopener noreferrer" : undefined}
+                  >
+                    {l.label}
+                  </a>
+                );
+              })}
             </div>
-        </main>
-    )
+          )}
+
+          <div className="metrics-grid" aria-label="Key quantitative specifications">
+            {project.metrics.map((m) => (
+              <div key={m.label} className="metric-cell">
+                <span className="metric-label">{m.label}</span>
+                <span className="metric-val">{m.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="tile-badges" style={{ marginBottom: "1rem" }}>
+            {project.tags.map((tag) => (
+              <span key={tag} className="mono-badge">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </header>
+
+        <details className="page-contents">
+          <summary>On this page ({navSections.length} sections)</summary>
+          <nav aria-label="On this page">
+            <ol>
+              {navSections.map((sec) => (
+                <li key={sec.id}>
+                  <a href={`#${sec.id}`}>{sec.label}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </details>
+
+        {/* Specifications Table */}
+        {project.specs && project.specs.length > 0 && (
+          <section
+            id="specifications"
+            tabIndex={-1}
+            style={{ marginTop: "1.75rem" }}
+            aria-labelledby="specs-heading"
+          >
+            <h2
+              id="specs-heading"
+              style={{
+                margin: "0 0 0.65rem",
+                fontFamily: "var(--font-mono-stack)",
+                fontSize: "1rem",
+                fontWeight: 500,
+              }}
+            >
+              Specifications &amp; verified operating envelope
+            </h2>
+            <div
+              className="table-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label="Scrollable specification table"
+            >
+              <table className="spec-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Subsystem / Parameter</th>
+                    <th scope="col">Measured / Designed Value</th>
+                    <th scope="col">Engineering Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.specs.map((s) => (
+                    <tr key={s.parameter}>
+                      <td
+                        style={{
+                          fontFamily: "var(--font-mono-stack)",
+                          fontSize: "0.78rem",
+                          color: "var(--ink)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {s.parameter}
+                      </td>
+                      <td style={{ color: "var(--ink)", fontWeight: 500 }}>{s.value}</td>
+                      <td style={{ color: "var(--ink-dim)" }}>{s.notes ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* Interactive Hardware Workbench */}
+        {project.interactiveWidget && (
+          <section
+            id="workbench"
+            tabIndex={-1}
+            style={{ marginTop: "1.75rem" }}
+            aria-labelledby="workbench-heading"
+          >
+            <h2
+              id="workbench-heading"
+              style={{
+                margin: "0 0 0.65rem",
+                fontFamily: "var(--font-mono-stack)",
+                fontSize: "1rem",
+                fontWeight: 500,
+              }}
+            >
+              Interactive hardware workbench
+            </h2>
+            {project.interactiveWidget === "im6014-thermal" && <Im6014ThermalExplorer />}
+            {project.interactiveWidget === "regen-inspector" && <RegenBoardInspector />}
+            {project.interactiveWidget === "foc-schematic" && <SchematicViewer />}
+          </section>
+        )}
+
+        {/* Hardware & Simulation Plates */}
+        {project.plates && project.plates.length > 0 ? (
+          <section
+            className="plates"
+            id="project-images"
+            tabIndex={-1}
+            aria-label="Hardware renders, bench photos, and simulation plots"
+          >
+            {project.plates.map((plate, pIdx) => (
+              <figure key={plate.src} className="plate">
+                <img
+                  src={assetPath(plate.src)}
+                  width={plate.width}
+                  height={plate.height}
+                  style={
+                    plate.maxRem
+                      ? { width: `min(100%, ${plate.maxRem}rem)` }
+                      : undefined
+                  }
+                  alt={plate.alt}
+                  loading={pIdx === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                />
+                <figcaption>{plate.caption}</figcaption>
+              </figure>
+            ))}
+          </section>
+        ) : (
+          <div className="plates" id="project-images">
+            <figure className="plate">
+              <img
+                src={assetPath(project.image)}
+                width={project.imageWidth}
+                height={project.imageHeight}
+                alt={project.imageAlt}
+                decoding="async"
+              />
+              <figcaption>{project.tileSub}</figcaption>
+            </figure>
+          </div>
+        )}
+
+        {/* Technical Writeup (Markdown + KaTeX + GFM tables) */}
+        <div className="eng-prose">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              h2: ({ children }) => {
+                const text = extractNodeText(children);
+                const id = slugifyHeading(text);
+                return (
+                  <h2 id={id} tabIndex={-1}>
+                    {children}
+                  </h2>
+                );
+              },
+              table: ({ children }) => (
+                <div
+                  className="table-scroll"
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Scrollable engineering data table"
+                >
+                  <table>{children}</table>
+                </div>
+              ),
+              th: ({ children }) => <th scope="col">{children}</th>,
+              pre: ({ children }) => (
+                <pre tabIndex={0} role="region" aria-label="Code listing">
+                  {children}
+                </pre>
+              ),
+            }}
+          >
+            {cleanedContent}
+          </ReactMarkdown>
+        </div>
+
+        {/* Chronological Build & Debugging Log for this Project */}
+        {projectLogs.length > 0 && (
+          <section
+            id="build-log"
+            tabIndex={-1}
+            style={{
+              marginTop: "2.75rem",
+              paddingTop: "1.5rem",
+              borderTop: "1px solid var(--line)",
+            }}
+            aria-labelledby="build-log-heading"
+          >
+            <div className="section-head" style={{ marginBottom: "0.75rem" }}>
+              <h2
+                id="build-log-heading"
+                style={{ fontSize: "1rem", color: "var(--ink)" }}
+              >
+                Chronological engineering log ({projectLogs.length})
+              </h2>
+              <Link href="/devlog">full lab notebook →</Link>
+            </div>
+            <ul className="devlog-list" role="list">
+              {projectLogs.map((entry) => (
+                <li key={entry.id} className="devlog-item">
+                  <div className="devlog-header">
+                    <span style={{ color: "var(--accent)" }}>{entry.displayDate}</span>
+                    <span>{entry.metrics.join(" · ")}</span>
+                  </div>
+                  <h3 className="devlog-title">{entry.title}</h3>
+                  {entry.body.map((para, i) => (
+                    <p key={i} className="devlog-summary" style={{ marginTop: "0.45rem" }}>
+                      {para}
+                    </p>
+                  ))}
+                  {entry.codeSnippet && (
+                    <pre
+                      tabIndex={0}
+                      role="region"
+                      aria-label={`${entry.projectLabel} code snippet`}
+                      style={{
+                        margin: "0.65rem 0 0.2rem",
+                        padding: "0.7rem 0.9rem",
+                        overflowX: "auto",
+                        background: "var(--surface-code)",
+                        border: "1px solid var(--line)",
+                        borderRadius: "3px",
+                        fontFamily: "var(--font-mono-stack)",
+                        fontSize: "0.75rem",
+                        lineHeight: 1.5,
+                        color: "var(--ink)",
+                      }}
+                    >
+                      <code>{entry.codeSnippet.code}</code>
+                    </pre>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Related Hardware */}
+        {relatedProjects.length > 0 && (
+          <section
+            id="related-work"
+            tabIndex={-1}
+            style={{
+              marginTop: "2.5rem",
+              paddingTop: "1.25rem",
+              borderTop: "1px solid var(--line)",
+            }}
+            aria-labelledby="related-heading"
+          >
+            <h2
+              id="related-heading"
+              style={{
+                margin: "0 0 0.85rem",
+                fontFamily: "var(--font-mono-stack)",
+                fontSize: "0.9375rem",
+                fontWeight: 500,
+              }}
+            >
+              Related hardware &amp; control stacks
+            </h2>
+            <ul role="list" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {relatedProjects.map((rp) => (
+                <li key={rp.slug} style={{ marginBottom: "0.85rem" }}>
+                  <Link
+                    href={`/projects/${rp.slug}`}
+                    className="standalone-link"
+                    style={{
+                      fontFamily: "var(--font-mono-stack)",
+                      fontSize: "0.84375rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {rp.title} →
+                  </Link>
+                  <p
+                    style={{
+                      margin: "0.15rem 0 0",
+                      fontSize: "0.84375rem",
+                      color: "var(--muted)",
+                    }}
+                  >
+                    {rp.summary}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <nav className="pager" aria-label="More projects">
+          <Link href={`/projects/${prevProject.slug}`}>← {prevProject.shortTitle}</Link>
+          <Link href={`/projects/${nextProject.slug}`}>{nextProject.shortTitle} →</Link>
+        </nav>
+      </main>
+
+      <footer className="foot">
+        <span>Siddharth Rajasekaran · 2026</span>
+        <a href="#top">top ↑</a>
+      </footer>
+    </div>
+  );
 }

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <defs>
+    <pattern id="grid3" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#26282b" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" fill="#131416"/>
+  <rect width="1200" height="800" fill="url(#grid3)"/>
+
+  <text x="64" y="68" fill="#8e959e" font-family="JetBrains Mono, monospace" font-size="16" letter-spacing="1.5">IEEE CASE 2025 · UH SWARM ROBOTICS LAB</text>
+  <text x="64" y="102" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="26" font-weight="600">Crazyflie 2.X Velocity-Obstacle Swarm &amp; +50% Endurance Mixing</text>
+
+  <!-- 3D Arena Visual -->
+  <rect x="64" y="156" width="640" height="490" rx="4" fill="#181a1d" stroke="#3c4046" stroke-width="1.5"/>
+  <text x="88" y="192" fill="#2dd4bf" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">STEAMVR LIGHTHOUSE V1 3D FLIGHT VOLUME</text>
+
+  <!-- Lighthouse Base Stations -->
+  <rect x="92" y="218" width="110" height="42" rx="3" fill="#131416" stroke="#fbbf24"/>
+  <text x="104" y="244" fill="#fbbf24" font-family="JetBrains Mono, monospace" font-size="12">BS-A Optical</text>
+  <rect x="568" y="218" width="110" height="42" rx="3" fill="#131416" stroke="#fbbf24"/>
+  <text x="580" y="244" fill="#fbbf24" font-family="JetBrains Mono, monospace" font-size="12">BS-B Optical</text>
+
+  <!-- Optical Rays -->
+  <line x1="147" y1="260" x2="260" y2="390" stroke="#fbbf24" stroke-opacity="0.25" stroke-dasharray="4,4"/>
+  <line x1="147" y1="260" x2="480" y2="470" stroke="#fbbf24" stroke-opacity="0.25" stroke-dasharray="4,4"/>
+  <line x1="623" y1="260" x2="260" y2="390" stroke="#fbbf24" stroke-opacity="0.25" stroke-dasharray="4,4"/>
+  <line x1="623" y1="260" x2="480" y2="470" stroke="#fbbf24" stroke-opacity="0.25" stroke-dasharray="4,4"/>
+
+  <!-- Velocity Obstacle Cone -->
+  <polygon points="260,390 455,365 415,515" fill="#f87171" fill-opacity="0.12" stroke="#f87171" stroke-dasharray="6,4"/>
+  <text x="330" y="446" fill="#fca5a5" font-family="JetBrains Mono, monospace" font-size="12">VO_ij Forbidden Cone</text>
+
+  <!-- Safe Trajectory Curve -->
+  <path d="M 260 390 Q 360 300 540 315" fill="none" stroke="#2dd4bf" stroke-width="3"/>
+  <circle cx="540" cy="315" r="6" fill="#2dd4bf"/>
+  <text x="415" y="298" fill="#2dd4bf" font-family="JetBrains Mono, monospace" font-size="12">v_opt (collision-free)</text>
+
+  <!-- Drone Nodes -->
+  <circle cx="260" cy="390" r="22" fill="#131416" stroke="#2dd4bf" stroke-width="2"/>
+  <text x="242" y="395" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="13">CF1</text>
+
+  <circle cx="465" cy="465" r="22" fill="#131416" stroke="#38bdf8" stroke-width="2"/>
+  <text x="447" y="470" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="13">CF2</text>
+  <path d="M 465 465 L 365 555" stroke="#38bdf8" stroke-width="2.5"/>
+
+  <circle cx="220" cy="545" r="22" fill="#131416" stroke="#a78bfa" stroke-width="2"/>
+  <text x="202" y="550" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="13">CF3</text>
+  <path d="M 220 545 L 330 575" stroke="#a78bfa" stroke-width="2.5"/>
+
+  <!-- Right Spec Panel -->
+  <rect x="736" y="156" width="400" height="490" rx="4" fill="#1b1d20" stroke="#3c4046" stroke-width="1.5"/>
+  <text x="762" y="196" fill="#f2f0eb" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600">CONTRIBUTIONS &amp; METRICS</text>
+  <line x1="762" y1="216" x2="1110" y2="216" stroke="#2d3136"/>
+
+  <text x="762" y="254" fill="#2dd4bf" font-family="JetBrains Mono, monospace" font-size="22" font-weight="600">+50% Flight Time</text>
+  <text x="762" y="280" fill="#9ca3af" font-family="Inter, sans-serif" font-size="13">Optimized quadrotor motor-mixing control</text>
+  <text x="762" y="300" fill="#9ca3af" font-family="Inter, sans-serif" font-size="13">allocation reducing actuator saturation spikes.</text>
+
+  <line x1="762" y1="330" x2="1110" y2="330" stroke="#2d3136"/>
+  <text x="762" y="368" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600">Velocity-Obstacle Avoidance</text>
+  <text x="762" y="394" fill="#9ca3af" font-family="Inter, sans-serif" font-size="13">Real-time Python cflib + ROS 2 ground</text>
+  <text x="762" y="414" fill="#9ca3af" font-family="Inter, sans-serif" font-size="13">station deconflicting 3D multi-agent paths.</text>
+
+  <line x1="762" y1="444" x2="1110" y2="444" stroke="#2d3136"/>
+  <text x="762" y="482" fill="#fbbf24" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600">Peer-Reviewed Publication</text>
+  <text x="762" y="508" fill="#d1d5db" font-family="Inter, sans-serif" font-size="13">Co-authored paper accepted at IEEE</text>
+  <text x="762" y="528" fill="#d1d5db" font-family="Inter, sans-serif" font-size="13">International Conference on Automation</text>
+  <text x="762" y="548" fill="#d1d5db" font-family="Inter, sans-serif" font-size="13">Science and Engineering (CASE 2025).</text>
+
+  <text x="64" y="736" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="13">BITCRAZE CRAZYFLIE 2.X · PYTHON CFLIB · ROS 2 · LIGHTHOUSE 3D TRACKING</text>
+</svg>

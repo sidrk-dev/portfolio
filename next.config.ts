@@ -1,12 +1,12 @@
 import type { NextConfig } from "next";
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   output: "export",
+  trailingSlash: true,
   basePath: "/portfolio",
   images: {
     unoptimized: true,
   },
-  /* config options here */
 };
 
 export default nextConfig;

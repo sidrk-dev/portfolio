@@ -1,23 +1,13 @@
-## Overview
+## Clinical lab problem
 
-During my internship at Texas Children's Hospital TIGr Lab, I engineered two automated lab devices to replace expensive commercial alternatives.
+At **Texas Children's Hospital (TIGr Lab)**, wet-lab researchers routinely perform repetitive slide-staining immersion protocols and gentle blood-vial inversions where commercial benchtop instruments cost \$2,500–\$5,000+ per station and still lock technicians into rigid vendor timer presets. Over my Summer 2025 engineering internship, I designed, CADed in **Onshape**, 3D-printed (FDM/SLA), wired, and wrote embedded **C++** firmware for two custom benchtop motion instruments — **saving over \$5,000** and remaining in active daily research use.
 
----
+## 1. Linear-rail TMC2209 precision slide-staining dipper
 
-## 1. Sample Flipper
+- **Mechanics:** Rigid vertical linear-rail carriage carrying multi-slide staining racks across reagent baths with repeatable immersion depth and drip-off clearance.
+- **Drive & firmware:** Configured a **Trinamic TMC2209** stepper driver over single-wire **UART** (`StealthChop2` silent current-mode microstepping) driven by a custom lightweight C++ motion/G-code command parser supporting programmable immersion velocities, agitation strokes, and multi-stage dwell timers.
 
-A programmable device to gently invert blood sample vials at specific intervals.
+## 2. Low-shear programmable blood-vial inverter
 
-- **Tech:** Arduino, Stepper Motors, 3D printed chassis.
-
----
-
-## 2. Precision Dipper
-
-An automated dipping mechanism for slide staining.
-
-- **Tech:** Linear rails, TMC2209 drivers for silent operation, custom G-code parser.
-
----
-
-Both devices are currently in use by the research team, improving workflow efficiency and reproducibility.
+- **Mechanics:** Balanced rotary drum assembly with compliant quick-release vial cradles engineered in Onshape for continuous benchtop duty cycles.
+- **Motion profiling:** Smooth trapezoidal acceleration/deceleration profiles across $180^\circ$ inversions keep fluid shear low (preventing sample hemolysis or foaming) while maintaining exact mixing intervals across long assay runs.

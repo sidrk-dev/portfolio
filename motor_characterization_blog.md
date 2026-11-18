@@ -25,7 +25,7 @@ When building an actuator for real-world use, guessing at motor performance is n
 | Component | Specs |
 |---|---|
 | Hoverboard hub motor | 400W, 36V, BLDC, 30 pole pairs |
-| mjbots moteus r4.11 | CAN-FD FOC controller, 54V/100A peak |
+| mjbots moteus r4.11 | CAN-FD FOC controller, 10–44V / 100A peak |
 | AS5047P magnetic encoder | 14-bit resolution, SPI, 200Hz observer |
 | Arduino + NTC thermistor | External motor winding temperature |
 | 35V regulated bench supply | Stiff bus voltage for repeatable tests |
@@ -222,4 +222,4 @@ The data pointed to **partial permanent magnet demagnetization**. The second tes
 | **Test Engineering** | Multi-layer safety interlocks, automated timestamped logging, multi-run repeatability analysis |
 | **Root Cause Analysis** | Data-driven failure hypothesis from telemetry signatures |
 
-The full codebase is on [GitHub](https://github.com).
+The full codebase is on [GitHub](https://github.com/sidrk-dev).
